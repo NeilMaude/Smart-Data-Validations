@@ -168,8 +168,16 @@ update [dbo].[zCPCChecker] set IssueA3ColourLow = 1 where A3Colour < @A3_MULTIPL
 
 -- find the last billing and meter reading dates for each machine  
 -- this takes ages as the dbo.invoiceline table can't be indexed on contractLineId...
+--update [dbo].[zCPCChecker] set LastBillDate = 
+--	(select top 1 postedDateTime from dbo.invoiceline where dbo.invoiceline.contractLineId = REPLACE([dbo].[zCPCChecker].contractLineId,'*','_') and invoiceTemplateId = 'METER' order by postedDateTime DESC)
 update [dbo].[zCPCChecker] set LastBillDate = 
-	(select top 1 postedDateTime from dbo.invoiceline where dbo.invoiceline.contractLineId = REPLACE([dbo].[zCPCChecker].contractLineId,'*','_') and invoiceTemplateId = 'METER' order by postedDateTime DESC)
+	(
+	select top 1 invoiceDate from dbo.invoiceline L left join dbo.invoice I on L.invoiceId = I.invoiceId 
+	where 
+		L.contractLineId = REPLACE([dbo].[zCPCChecker].contractLineId,'*','_')
+	order by 
+		invoiceDate DESC
+	)
 
 IF EXISTS (SELECT *  FROM sys.indexes  WHERE name='CPC_CHECK_i3' AND object_id = OBJECT_ID('[dbo].[meterreading]'))
 BEGIN
@@ -195,6 +203,10 @@ update dbo.zCPCChecker set IssueLastMeterAge = 1 where DATEDIFF(m,LastMeterReadi
 select count(*) [MIF] from [dbo].[zCPCChecker] 
 select count(*) [BlackOverColour] from [dbo].[zCPCChecker] where IssueBlackColour = 1
 select * from [dbo].[zCPCChecker] where IssueBlackColour = 1
+select * from [dbo].[zCPCChecker] where IssueBlackAverage= 1
+select * from [dbo].[zCPCChecker] where IssueColourLow= 1
+
+select * from [dbo].[zCPCChecker] order by InstallDate DESC
 
 -- test code below here
 
